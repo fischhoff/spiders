@@ -448,7 +448,7 @@ names(df.aic) = c("Model",
               "Delta AIC",
               "Likelihood",
               "AIC weight")
- write.csv(df.aic, file = "Table1.csv", row.names = FALSE)
+ write.csv(df.aic, file = "output/Table1.csv", row.names = FALSE)
  
  #workaround for making table for manuscript for interaction model -- Table 2
 tmp = summary(t1.flat.met52.spid.int)
@@ -1075,7 +1075,7 @@ plots =  ggplot()+
 
 #####make boxplot graph for ticks questing re: treatment: no spider / not seen + died  / not seen + lived  / seen
 ```{r}
-load("O.Rdata")
+load("Rdata_files/O.Rdata")
 O$live.spider.plot = O$live.spider.numeric
 O$live.spider.plot[O$treatment.spider==0]=-1#never spider
 

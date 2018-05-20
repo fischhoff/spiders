@@ -11,6 +11,19 @@ Ilya
 
 ##### Approach: bootstrap power analysis using data from previous experiment and assumed effects of Met52 and of Met52*spider interaction. Power analysis: Use data from previous experiment (conducted by collaborator J. Burtis), on survival of ticks in microcosms with and without S. ocreata, to determine sample size needed for current experiment. For range of sample sizes, simulate four treatments: 1) spider + biopesticide control (H2O), 2) spider + Met52, 3) no spider + H2O, 4) no spider + Met52. For biopesticide control microcosms, sample, with replacement, from dataset of tick survival in microcosms with and without spider. For microcosms with biopesticide and no spider, simulate 50% reduction in survival due to Met52 after sampling from data on survival in no-spider microcosms. For microcosms with biopesticide and spider, assign spider effect based on random sample of microcosms with and without spider. Then apply 70% reduction in effect of spider on survival due to hypothesized interference of Met52 with spider. Then apply 50% reduction in survival of remaining ticks; this assumes no interference effect of spider on Met52. For each randomization run, determine P values for effect of Met52, spider, and Met52*spider interaction. As check that these results make sense, also compute delta AIC between model (survival ~ spider + Met52) vs. model (survival ~ spider + Met52 + spider*Met52). Deploy number of microcosms with sample size with &gt;80% power to detect met52*spider interaction effect.
 
+install packages
+================
+
+``` r
+list.of.packages <- c("lme4", "MuMIn", "dplyr", "ggplot2", "AICcmodavg", "grid", "cowplot", "lubridate")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+print(new.packages)
+```
+
+    ## character(0)
+
 ``` r
 library(lme4)
 ```
@@ -19,14 +32,69 @@ library(lme4)
 
 ``` r
 library(MuMIn)#use for getting p values
+library("ggplot2")
+library(dplyr)
+```
+
+    ## 
+    ## Attaching package: 'dplyr'
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     filter, lag
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     intersect, setdiff, setequal, union
+
+``` r
+library("AICcmodavg")#Use this due to small sample size
+```
+
+    ## 
+    ## Attaching package: 'AICcmodavg'
+
+    ## The following objects are masked from 'package:MuMIn':
+    ## 
+    ##     AICc, DIC, importance
+
+    ## The following object is masked from 'package:lme4':
+    ## 
+    ##     checkConv
+
+``` r
+library(grid)
+require(cowplot)
+```
+
+    ## Loading required package: cowplot
+
+    ## 
+    ## Attaching package: 'cowplot'
+
+    ## The following object is masked from 'package:ggplot2':
+    ## 
+    ##     ggsave
+
+``` r
+library("lubridate")
+```
+
+    ## 
+    ## Attaching package: 'lubridate'
+
+    ## The following object is masked from 'package:base':
+    ## 
+    ##     date
+
+``` r
 # Start the clock! (to find out how long this takes)
 old <- Sys.time() # get start time
 
 #read in data from previous experiment
-D = read.csv("Tick Predator Project_2015_Tick Survival Data.csv")
+D = read.csv("raw_data_files/Tick Predator Project_2015_Tick Survival Data.csv")
 #subset for data of interest: with leaf litter in microcosms 
 D = subset(D, Litter == "LitRef")
-#write.csv(D, file = "D.csv")
 
 #Assume Met52 causes a 50% reduction in tick survival. 
 Met52.reduce.ticks = 0.5#
@@ -161,9 +229,9 @@ df.sum = data.frame(sample_size,
                     delta.AIC.2plus.frac,
                     rep_chk )
 boot = df.sum
-save(boot, file = "boot.Rdata")
+save(boot, file = "Rdata_files/boot.Rdata")
 #write summary to file
-filename_var = "Met52.reduce.pred"
+filename_var = "output/Met52.reduce.pred"
 write.csv(df.sum, file = paste(filename_var, Met52.reduce.pred,"reps",reps, 
                                "power_detect.csv", sep = "."),
           row.names = FALSE)
@@ -172,14 +240,13 @@ new <- Sys.time() - old # calculate difference
 print(new) # print in nice format
 ```
 
-    ## Time difference of 0.8842831 secs
+    ## Time difference of 0.978723 secs
 
 ##### make plot with output of bootstrap
 
 ``` r
-load("boot.Rdata")
+load("Rdata_files/boot.Rdata")
 
-library("ggplot2")
 plot.tmp = ggplot()+
   geom_point(data = boot,
              mapping = aes(x = sample_size,
@@ -189,7 +256,7 @@ plot.tmp = ggplot()+
      ylim(0,1)
 
 
-ggsave(plot.tmp,filename=paste("Figure.boot",".jpeg",sep=""),
+ggsave(plot.tmp,filename=paste("output/Figure.boot",".jpeg",sep=""),
         dpi = 600,
        width = 6,
        height = 7,
@@ -230,22 +297,7 @@ format(core,scientific = TRUE)
 ###### Compare fit of model that includes only effect of spider presence vs. model that also includes spider reproductive status.
 
 ``` r
-library(lme4)
-library("AICcmodavg")#Use this due to small sample size
-```
-
-    ## 
-    ## Attaching package: 'AICcmodavg'
-
-    ## The following objects are masked from 'package:MuMIn':
-    ## 
-    ##     AICc, DIC, importance
-
-    ## The following object is masked from 'package:lme4':
-    ## 
-    ##     checkConv
-
-``` r
+load("Rdata_files/C.Rdata")
 t1.flat.spid.only <- lm(frac.flat.nymphs.recovered ~ treatment.spider, data = C)
 
 
@@ -299,7 +351,7 @@ names(df.aic) = c("model",
               "AIC weight")
 
 #output table for appendix for manuscript
- write.csv(df.aic, file = "Appendix.S1.csv",
+ write.csv(df.aic, file = "output/Appendix.S1.csv",
            row.names = FALSE)
 ```
 
@@ -309,9 +361,7 @@ names(df.aic) = c("model",
 
 ``` r
 #note need to use glm rather than lm to get aic value as output
-library(lme4)
-library("AICcmodavg")
-load("C.Rdata")
+load("Rdata_files/C.Rdata")
 
 #Define alternate models, including effects of spider only, Met52 only, both spider and Met52, and spider*Met52 interaction, and null (intercept) model
 t1.flat.spid.only <- lm(frac.flat.nymphs.recovered ~ treatment.spider, data = C)
@@ -383,7 +433,7 @@ names(df.aic) = c("Model",
               "Delta AIC",
               "Likelihood",
               "AIC weight")
- write.csv(df.aic, file = "Table1.csv", row.names = FALSE)
+ write.csv(df.aic, file = "output/Table1.csv", row.names = FALSE)
  
  #workaround for making table for manuscript for interaction model -- Table 2
 tmp = summary(t1.flat.met52.spid.int)
@@ -392,8 +442,8 @@ names(tmp) = c("Coefficient estimate",
                "Coefficient std. error",
                "t value",
                "P(>|t|)")
-write.csv(tmp, file = "Table.2.csv")
-tmp =read.csv("Table.2.csv")
+write.csv(tmp, file = "output/Table.2.csv")
+tmp =read.csv("output/Table.2.csv")
 names(tmp) = c("Term",
   "Coefficient estimate",
                "Coefficient std. error",
@@ -404,7 +454,7 @@ tmp$Term = c("intercept",
        "spider",
        "Met52*spider")
 tmp[,c(2:4)] = round(tmp[,c(2:4)], digits = 2)
-write.csv(tmp, file = "Table.2.csv",
+write.csv(tmp, file = "output/Table.2.csv",
           row.names = FALSE)
 
 #Now output data for repository
@@ -423,7 +473,7 @@ names(C.archive) = c("microcosm.id",
          "fraction.engorged.nymphs.recovered",
   "spider.alive.end",
   "spider.reproductive.status.begin")
-write.csv(C.archive, file = "DataS1.csv",
+write.csv(C.archive, file = "output/DataS1.csv",
           row.names = FALSE)
 names(C)
 ```
@@ -497,8 +547,7 @@ names(C)
 ###### analyze effects of treatment on engorged tick recovery
 
 ``` r
-library(lme4)
-load("C.Rdata")
+load("Rdata_files/C.Rdata")
 
 C$y = C$frac.engorged.nymphs.recovered
 C = subset(C, !is.na(frac.engorged.nymphs.recovered))
@@ -609,7 +658,6 @@ summary(t1.eng.null)
     ## Residual standard error: 0.3276 on 86 degrees of freedom
 
 ``` r
-library("AICcmodavg")
  x <- c(
    AICc(t1.eng.spid.only),
         AICc(t1.eng.met52.only),
@@ -666,19 +714,10 @@ names(df.aic) = c("Model",
               "Delta AIC",
               "Likelihood",
               "AIC weight")
- write.csv(df.aic, file = "Table.3.eng.spider.Met52.AIC.csv", row.names = FALSE)
+ write.csv(df.aic, file = "output/Table.3.eng.spider.Met52.AIC.csv", row.names = FALSE)
 ```
 
 ###### graph: boxplots of proportion of flat tick and engorged tick survival by treatment
-
-    ## Loading required package: cowplot
-
-    ## 
-    ## Attaching package: 'cowplot'
-
-    ## The following object is masked from 'package:ggplot2':
-    ## 
-    ##     ggsave
 
     ## Warning: Removed 2 rows containing non-finite values (stat_boxplot).
 
@@ -687,10 +726,7 @@ names(df.aic) = c("Model",
 ###### Decision: Compare model with Met52 vs. null (intercept) model
 
 ``` r
-library(lme4)
-library("AICcmodavg")
-
-load("C.Rdata")
+load("Rdata_files/C.Rdata")
 
 C.spider = subset(C, treatment.spider==1)
 t1.met52 <- glm(live.spider ~ treatment.met52, data = C.spider,
@@ -772,15 +808,13 @@ names(df.aic) = c("model",
               "Likelihood",
               "AIC weight")
 
- write.csv(df.aic, file = "Table4.spider.survival.Met52.AIC.csv", row.names = FALSE)
+ write.csv(df.aic, file = "output/Table4.spider.survival.Met52.AIC.csv", row.names = FALSE)
 ```
 
 ###### graph spider survival by treatment
 
 ``` r
-library(ggplot2)
-load("C.Rdata")
-require(cowplot)
+load("Rdata_files/C.Rdata")
 
 C = subset(C, treatment.spider == 1)
 fs= 18
@@ -795,7 +829,7 @@ spider.plot = ggplot()+
     scale_x_discrete(labels = xlabs)+
      theme(axis.text=element_text(size=fs))+
   theme(axis.title = element_text(size = fs))
-save_plot( "Figure.spider.survival.jpg", spider.plot, 
+save_plot( "output/Figure.spider.survival.jpg", spider.plot, 
            dpi = 600)
 ```
 
@@ -806,21 +840,10 @@ save_plot( "Figure.spider.survival.jpg", spider.plot,
 ###### Clean up questing data and output for repository
 
 ``` r
-library("lubridate")
-```
-
-    ## 
-    ## Attaching package: 'lubridate'
-
-    ## The following object is masked from 'package:base':
-    ## 
-    ##     date
-
-``` r
-load("C.Rdata")
+load("Rdata_files/C.Rdata")
 
 #read in data on ticks questing
-Q = read.csv(file = "tritrophic cores - questing_DATA.csv")
+Q = read.csv(file = "raw_data_files/tritrophic cores - questing_DATA.csv")
 #limit to the cores we are using in survival analysis (remove cores that I made mistake with spray application with)
 names(Q)= tolower(names(Q))
 Q = subset(Q, core.id %in% C$core.id)
@@ -877,7 +900,7 @@ O$frac.nymphs.questing = O$ticks/O$nymphs.flat.recovered
 O$frac.nymphs.questing[O$frac.nymphs.questing == Inf] = NA
 O$frac.nymphs.questing[O$frac.nymphs.questing == "NaN"] = NA
 
-save(O, file = "O.Rdata")
+save(O, file = "Rdata_files/O.Rdata")
 
 keep = c("core.id",
          "frac.nymphs.questing",
@@ -894,18 +917,14 @@ names(O.archive) =  c("microcosm.id",
          "treatment.spider",
          "spider.observed",
          "spider.alive.end")
-write.csv(O.archive, file = "Data.S2.csv")
+write.csv(O.archive, file = "output/Data.S2.csv")
 #output for figshare
 ```
 
 ##### run models of tick questing re: Met52, spider activity, spider survival
 
 ``` r
-library(lme4)
-library(ggplot2)
-library(AICcmodavg)
-
-load("O.Rdata")
+load("Rdata_files/O.Rdata")
 
 t1.met52 = lm(frac.nymphs.questing ~ treatment.met52, data = O)
 
@@ -967,6 +986,7 @@ t1.spider.live.quest.met52 <- lm(frac.nymphs.questing ~
 
 t1.null <- lm(frac.nymphs.questing ~ 1, data = O)
 
+#this could be done faster with model.sel
  x <- c(AICc(t1.met52),
    AICc(t1.spider),
         AICc(t1.active.spider),
@@ -1126,9 +1146,9 @@ names(tmp) = c("Coefficient estimate",
                "t value",
                "P(>|t|)")
 
-write.csv(tmp, file = "Table.6.csv")
+write.csv(tmp, file = "Rdata_files/Table.6.csv")
 
-tmp =read.csv("Table.6.csv")
+tmp =read.csv("Rdata_files/Table.6.csv")
 
 names(tmp) = c("Term",
   "Coefficient estimate",
@@ -1142,18 +1162,16 @@ tmp$Term = c("Intercept",
              "spider active")
 tmp[,c(2:4)] = round(tmp[,c(2:4)], digits = 2)
 tmp[,c(5)] = round(tmp[,c(5)], digits = 3)#P
-write.csv(tmp, file = "Table.6.csv",
+write.csv(tmp, file = "Rdata_files/Table.6.csv",
           row.names = FALSE)
 
- write.csv(df.aic, file = "quest.spider.Met52.AIC.csv", row.names = FALSE)
+ write.csv(df.aic, file = "output/quest.spider.Met52.AIC.csv", row.names = FALSE)
 ```
 
 ##### make error bar graph for ticks questing re: treatment
 
 ``` r
-load("O.Rdata")
-library("ggplot2")
-
+load("Rdata_files/O.Rdata")
 O$live.spider.plot = O$live.spider.numeric
 O$live.spider.plot[O$treatment.spider==0]=-1
 
@@ -1230,7 +1248,7 @@ plots =  ggplot()+
 
 ``` r
    # +
-  ggsave(plots,filename=paste("Figure.questing",".jpeg",sep=""),
+  ggsave(plots,filename=paste("output/Figure.questing",".jpeg",sep=""),
         dpi = 600,
        width = 6,
        height = 7,
@@ -1240,29 +1258,7 @@ plots =  ggplot()+
 ##### make boxplot graph for ticks questing re: treatment: no spider / not seen + died / not seen + lived / seen
 
 ``` r
-library("ggplot2")
-library(dplyr)
-```
-
-    ## 
-    ## Attaching package: 'dplyr'
-
-    ## The following objects are masked from 'package:lubridate':
-    ## 
-    ##     intersect, setdiff, union
-
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     filter, lag
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     intersect, setdiff, setequal, union
-
-``` r
-load("O.Rdata")
-
-
+load("Rdata_files/O.Rdata")
 O$live.spider.plot = O$live.spider.numeric
 O$live.spider.plot[O$treatment.spider==0]=-1#never spider
 
@@ -1294,7 +1290,7 @@ plot.spider = ggplot()+
     ylim(0,1)
 
 #p = plot_grid(plot.spider, nrow = 1, align = "v")
-save_plot( "Figure.3.jpg", plot.spider, 
+save_plot( "output/Figure.3.jpg", plot.spider, 
            dpi = 600)
 ```
 
