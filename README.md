@@ -1,5 +1,6 @@
 # Tritrophic interactions between a fungal pathogen, a spider predator, and the blacklegged tick
-Organization
+
+File organization
 
 The R markdown file “spider.Rmd” completes the analysis and makes the github markdown file spider.md. Raw data files are in folder “raw_data_files”. Working Rdata files, and temporary .csv files, are in folder “Rdata_files”. Tables and figures for the manuscript are in folder “output”. The current draft of the manuscript is “Tritrophic_EE_20180514_proof.pdf”. 
 
