@@ -1,0 +1,6 @@
+"Model","Residual df","Number parameters","AICc","Delta AIC","Likelihood","AIC weight"
+"spider + Met52",85,3,-13.71,0,1,0.48
+"spider + Met52 + spider*Met52",84,4,-13.06,0.65,0.72,0.35
+"Met52",86,2,-11.73,1.99,0.37,0.18
+"spider",86,2,7.86,21.57,0,0
+"intercept",87,1,8.95,22.66,0,0
